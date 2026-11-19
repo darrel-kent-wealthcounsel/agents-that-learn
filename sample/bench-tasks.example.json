@@ -1,0 +1,12 @@
+[
+  {
+    "id": "payment-retry",
+    "prompt": "When starting a payment fails, set the order status to 'retry' instead of 'failed'.",
+    "expect_files": ["src/stores/orderActions.ts"]
+  },
+  {
+    "id": "money-format",
+    "prompt": "Show money with a thousands separator, for example $1,234.50.",
+    "expect_files": ["src/utils/currency.ts"]
+  }
+]

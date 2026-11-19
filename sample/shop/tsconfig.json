@@ -1,0 +1,4 @@
+{
+  // path alias used across the browser code
+  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["./src/*"] } }
+}

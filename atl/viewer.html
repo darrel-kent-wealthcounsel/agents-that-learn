@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code map</title>
+<style>
+  :root {
+    --paper: #f3f5f7; --card: #ffffff; --ink: #18212f; --muted: #5b6676; --line: #d5dbe3;
+    --amber: #b9740c; --amber-fill: #f0a93b; --aqua: #107a80; --aqua-fill: #35b6bb;
+    --sea: #101a2c;
+    --sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #16202f; --card: #1d2a3d; --ink: #e9eef5; --muted: #9eabbc; --line: #2d3d57;
+            --amber: #f0a93b; --aqua: #5fd0d4; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; font: 15px/1.45 var(--sans);
+         color: var(--ink); background: var(--paper); }
+  aside { overflow-y: auto; padding: 22px 22px 28px; border-right: 1px solid var(--line); }
+  h1 { font-size: 22px; line-height: 1.15; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .stats { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  form { display: flex; gap: 8px; margin-bottom: 8px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type=text] { flex: 1; min-width: 0; font: inherit; padding: 9px 11px; border-radius: 8px;
+         border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  button { font: inherit; cursor: pointer; }
+  .go { padding: 9px 14px; border-radius: 8px; border: 0; background: var(--ink); color: var(--paper); font-weight: 600; }
+  :focus-visible { outline: 2px solid var(--aqua-fill); outline-offset: 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .chips button { border: 1px solid var(--line); background: transparent; color: var(--ink);
+         border-radius: 999px; padding: 4px 11px; font-size: 13px; }
+  .chips button:hover { border-color: var(--muted); }
+  .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 14px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; margin-bottom: 10px; }
+  .step h2 { font-size: 15px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+  .num { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center;
+         font-size: 12px; font-weight: 700; color: #14202f; flex: none; }
+  .num.a { background: var(--amber-fill); } .num.w { background: var(--aqua-fill); }
+  .step p { margin: 0; color: var(--muted); font-size: 14px; }
+  .path { font-family: var(--mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .path b { color: var(--ink); font-weight: 600; }
+  ol.ranked { list-style: none; margin: 10px 0 0; padding: 0; }
+  ol.ranked li { border-top: 1px solid var(--line); }
+  ol.ranked button { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; width: 100%; text-align: left;
+         background: none; border: 0; color: inherit; padding: 9px 0; }
+  ol.ranked button:hover .path b { text-decoration: underline; }
+  .rank { font-weight: 700; color: var(--aqua); }
+  .bar { grid-column: 2; height: 4px; border-radius: 2px; background: var(--aqua-fill); min-width: 4px; }
+  .chain { grid-column: 2; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .chain i { font-style: normal; opacity: .75; }
+  .miss { grid-column: 2; font-size: 12px; font-weight: 600; color: var(--amber); }
+  .verdict { font-weight: 600; margin: 12px 0 0; color: var(--ink) !important; }
+  details { margin-top: 10px; font-size: 14px; }
+  summary { cursor: pointer; color: var(--muted); }
+  details ol { margin: 6px 0 0; padding-left: 20px; }
+  .legend { margin-top: 20px; font-size: 13px; color: var(--muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .legend span { display: flex; align-items: center; gap: 7px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .sw { width: 10px; height: 10px; flex: none; border-radius: 2px; }
+  .ln { width: 22px; height: 0; flex: none; border-top: 2px solid; }
+  .legend h3 { grid-column: 1 / -1; font-size: 13px; margin: 8px 0 0; color: var(--ink); }
+  main { position: relative; background: var(--sea); overflow: hidden; min-height: 320px; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  canvas.drag { cursor: grabbing; }
+  .tip { position: absolute; pointer-events: none; background: #0b1220; color: #e9eef5; font: 12.5px var(--mono);
+         padding: 5px 8px; border-radius: 6px; border: 1px solid #2d3d57; display: none; max-width: 60%; }
+  .hint { position: absolute; left: 16px; bottom: 12px; color: #8fa0b8; font-size: 13px; }
+  .reset { position: absolute; right: 14px; top: 14px; background: #1b2942; color: #dfe7f2; border: 1px solid #2d3d57;
+         border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: auto 60vh; } aside { border-right: 0; } }
+</style>
+</head>
+<body>
+<aside>
+  <h1 id="title">Code map</h1>
+  <p class="stats" id="stats"></p>
+  <label for="q">Ask where something lives</label>
+  <form id="ask"><input id="q" type="text" autocomplete="off" placeholder="where is…"><button class="go">Find it</button></form>
+  <div class="chips" id="chips"></div>
+  <div id="result"><p class="empty">Ask a question, or click a file on the map to see what it connects to.</p></div>
+  <div class="legend" id="legend"></div>
+</aside>
+<main>
+  <canvas id="map" aria-label="Map of the files in this repo and the links between them"></canvas>
+  <button class="reset" id="reset">Show whole map</button>
+  <div class="tip" id="tip"></div>
+  <div class="hint">Drag to move. Scroll to zoom. Click a file.</div>
+</main>
+<script id="graph-data" type="application/json">__GRAPH_JSON__</script>
+<script>
+"use strict";
+const G = JSON.parse(document.getElementById("graph-data").textContent);
+const N = G.nodes, KIND = G.kinds;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------------------------------------------------------------- words (mirrors atl/text.py)
+const STOP = new Set(("a an the is are was were do does did where what which who how why when in on of to " +
+  "for from with and or we our i it this that be can should would there here my me us at by as if so into about").split(" "));
+function stem(t) {
+  if (t.length > 4 && t.endsWith("ies")) t = t.slice(0, -3) + "y";
+  else if (t.length > 3 && t.endsWith("s") && !t.endsWith("ss")) t = t.slice(0, -1);
+  if (t.length > 5 && t.endsWith("ing")) t = t.slice(0, -3);
+  return t;
+}
+function queryTokens(q) {
+  const out = [], seen = new Set();
+  for (const w of q.match(/[A-Za-z][A-Za-z0-9]*/g) || [])
+    for (let p of w.match(/[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+/g) || []) {
+      p = p.toLowerCase();
+      if (p.length < 2 || /^\d+$/.test(p) || STOP.has(p)) continue;
+      const t = stem(p);
+      if (!seen.has(t)) { seen.add(t); out.push(t); }
+    }
+  return out;
+}
+
+// ---------------------------------------------------------------- search (mirrors atl/retrieve.py)
+const KIND_WEIGHT = [1, 1, 1, 1, 0.5], RESTART = 0.15, ROUNDS = 40;
+const adj = N.map(() => []);
+for (const [s, t, k, c] of G.edges) {
+  const w = KIND_WEIGHT[k] * (1 + Math.log(c));
+  adj[s].push([t, w, k]); adj[t].push([s, w, k]);
+}
+const outW = adj.map(a => a.reduce((x, e) => x + e[1], 0));
+const tokSets = N.map(n => ({ name: new Set(n.n), doc: new Set(n.d || []) }));
+const pathSets = N.map(n => { const f = N[n.f]; return new Set(n.k ? [...f.p, ...f.n] : f.p); });
+const idf = new Map();
+{
+  const df = new Map();
+  N.forEach((n, i) => {
+    const f = N[n.f];
+    for (const t of new Set([...n.n, ...(n.d || []), ...f.n, ...f.p])) df.set(t, (df.get(t) || 0) + 1);
+  });
+  for (const [t, c] of df) idf.set(t, Math.log(1 + N.length / c));
+}
+const bags = new Map(), fidf = new Map();
+{
+  const fdf = new Map();
+  for (const [fi, flat] of Object.entries(G.bags)) {
+    const bag = new Map();
+    for (let i = 0; i < flat.length; i += 2) bag.set(G.vocab[flat[i]], flat[i + 1]);
+    bags.set(+fi, bag);
+    for (const t of bag.keys()) fdf.set(t, (fdf.get(t) || 0) + 1);
+  }
+  for (const [t, c] of fdf) fidf.set(t, Math.log(1 + bags.size / c));
+}
+function keywordScores(q) {
+  const scores = new Map();
+  for (const [fi, bag] of bags) {
+    let s = 0;
+    for (const t of q) if (bag.has(t)) s += (fidf.get(t) || 0) * bag.get(t) / (bag.get(t) + 1.5);
+    if (s) scores.set(fi, s);
+  }
+  return scores;
+}
+function anchors(question, n = 1) {
+  const q = queryTokens(question), kw = keywordScores(q);
+  const kmax = Math.max(0, ...kw.values());
+  const named = N.map((node, i) => {
+    let score = 0, hit = 0;
+    for (const t of q) {
+      const w = idf.get(t) || 0;
+      if (tokSets[i].name.has(t)) { score += 2 * w; hit++; }
+      else if (tokSets[i].doc.has(t)) score += 0.6 * w;
+      else if (pathSets[i].has(t)) score += 0.4 * w;
+    }
+    return score * (hit + 0.5) / (tokSets[i].name.size + 0.5);
+  });
+  const nmax = named.reduce((a, b) => Math.max(a, b), 0), scored = [];
+  N.forEach((node, i) => {
+    if (!named[i] && node.k) return;
+    const total = (nmax ? named[i] / nmax : 0) + (kmax ? 0.3 * (kw.get(node.f) || 0) / kmax : 0);
+    if (total) scored.push([total, node.k, i]);
+  });
+  scored.sort((a, b) => b[0] - a[0] || b[1] - a[1] || a[2] - b[2]);
+  const out = scored.slice(0, n);
+  for (const s of scored.slice(n, 3)) if (Math.abs(s[0] - scored[0][0]) < 1e-9) out.push(s);
+  return out.map(s => s[2]);
+}
+function pagerank(seeds) {
+  const start = new Float64Array(N.length);
+  for (const s of seeds) start[s] = 1 / seeds.length;
+  let rank = Float64Array.from(start);
+  for (let r = 0; r < ROUNDS; r++) {
+    const next = start.map(v => RESTART * v);
+    for (let i = 0; i < N.length; i++) {
+      if (!rank[i] || !outW[i]) continue;
+      const share = (1 - RESTART) * rank[i] / outW[i];
+      for (const [j, w] of adj[i]) next[j] += share * w;
+    }
+    rank = next;
+  }
+  return rank;
+}
+function graphSearch(question, k = 5) {
+  const found = anchors(question);
+  if (!found.length) return { anchors: [], files: [] };
+  const rank = pagerank(found), per = new Map();
+  rank.forEach((r, i) => { if (r) per.set(N[i].f, (per.get(N[i].f) || 0) + r); });
+  const files = [...per].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, k);
+  return { anchors: found, files };
+}
+function keywordSearch(question, k = 5) {
+  return [...keywordScores(queryTokens(question))].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, k);
+}
+function chain(starts, fileIndex) {
+  const prev = new Map(starts.map(s => [s, null])), queue = [...starts];
+  for (let h = 0; h < queue.length; h++) {
+    let i = queue[h];
+    if (N[i].f === fileIndex) {
+      const steps = [];
+      while (prev.get(i)) { steps.push([i, prev.get(i)[1]]); i = prev.get(i)[0]; }
+      return [[i, null], ...steps.reverse()];
+    }
+    for (const [j, , kind] of adj[i]) if (!prev.has(j)) { prev.set(j, [i, kind]); queue.push(j); }
+  }
+  return [];
+}
+
+// ---------------------------------------------------------------- map layout (files only)
+let view = { x: 0, y: 0, s: 1 };
+const files = []; N.forEach((n, i) => { if (n.k === 0) files.push(i); });
+const slot = new Map(files.map((f, j) => [f, j]));
+const fnCount = new Map(); N.forEach(n => { if (n.k) fnCount.set(n.f, (fnCount.get(n.f) || 0) + 1); });
+const fileLinks = new Map();
+for (const [s, t, k, c] of G.edges) {
+  const a = N[s].f, b = N[t].f;
+  if (k === 0 || a === b) continue;
+  const key = a < b ? a + "|" + b : b + "|" + a;
+  const e = fileLinks.get(key) || { a: Math.min(a, b), b: Math.max(a, b), kinds: 0, w: 0 };
+  e.kinds |= 1 << k; e.w += c; fileLinks.set(key, e);
+}
+const links = [...fileLinks.values()];
+const PALETTE = ["#6ea8fe", "#7bd389", "#c59bff", "#ff8fb1", "#8fdde0", "#c2ccd9", "#d4e157", "#a5b4fc", "#f7a8d8", "#9ad1a8", "#7fb5c9", "#e0c3fc"];
+const areaColor = a => PALETTE[a % PALETTE.length];
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const R0 = 34 * Math.sqrt(files.length);
+const X = new Float32Array(files.length), Y = new Float32Array(files.length);
+const VX = new Float32Array(files.length), VY = new Float32Array(files.length);
+const homeX = [], homeY = [];
+G.areas.forEach((_, a) => { const ang = 2 * Math.PI * a / G.areas.length; homeX.push(R0 * Math.cos(ang)); homeY.push(R0 * Math.sin(ang)); });
+files.forEach((f, j) => { const a = N[f].a; X[j] = homeX[a] + (rnd() - .5) * R0 * .6; Y[j] = homeY[a] + (rnd() - .5) * R0 * .6; });
+const size = j => (7 + 2.2 * Math.sqrt(fnCount.get(files[j]) || 0)) / Math.max(1, Math.pow(view.s, 0.6));
+let heat = 1;
+function tick() {
+  const CELL = 90, grid = new Map();
+  for (let j = 0; j < files.length; j++) {
+    const key = Math.floor(X[j] / CELL) + "," + Math.floor(Y[j] / CELL);
+    (grid.get(key) || grid.set(key, []).get(key)).push(j);
+  }
+  for (let j = 0; j < files.length; j++) {
+    const cx = Math.floor(X[j] / CELL), cy = Math.floor(Y[j] / CELL);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const cell = grid.get((cx + dx) + "," + (cy + dy)); if (!cell) continue;
+      for (const o of cell) {
+        if (o <= j) continue;
+        let ex = X[j] - X[o], ey = Y[j] - Y[o], d2 = ex * ex + ey * ey;
+        if (d2 > CELL * CELL) continue;
+        if (d2 < 1) { ex = rnd() - .5; ey = rnd() - .5; d2 = 1; }
+        const push = 260 / d2 * heat;
+        VX[j] += ex * push; VY[j] += ey * push; VX[o] -= ex * push; VY[o] -= ey * push;
+      }
+    }
+  }
+  for (const e of links) {
+    const a = slot.get(e.a), b = slot.get(e.b);
+    const ex = X[b] - X[a], ey = Y[b] - Y[a], d = Math.sqrt(ex * ex + ey * ey) || 1;
+    const pull = (d - 46) / d * 0.03 * Math.min(2, 1 + Math.log(e.w)) * heat;
+    VX[a] += ex * pull; VY[a] += ey * pull; VX[b] -= ex * pull; VY[b] -= ey * pull;
+  }
+  for (let j = 0; j < files.length; j++) {
+    const a = N[files[j]].a;
+    VX[j] += ((homeX[a] - X[j]) * 0.004 - X[j] * 0.006) * heat;
+    VY[j] += ((homeY[a] - Y[j]) * 0.004 - Y[j] * 0.006) * heat;
+    VX[j] *= 0.82; VY[j] *= 0.82;
+    X[j] += Math.max(-30, Math.min(30, VX[j])); Y[j] += Math.max(-30, Math.min(30, VY[j]));
+  }
+  heat *= 0.988;
+}
+
+// ---------------------------------------------------------------- drawing
+const canvas = document.getElementById("map"), ctx = canvas.getContext("2d"), tip = document.getElementById("tip");
+let target = null, W = 0, H = 0;
+let mark = null;   // { anchors:[node], anchorFiles:Set, ranked:[file], pairs:Set, focus:file|null }
+const quiet = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function resize() {
+  const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  W = r.width; H = r.height; canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
+}
+function fit(list, pad = 90) {
+  if (!list.length) list = files;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const f of list) { const j = slot.get(f); x0 = Math.min(x0, X[j]); x1 = Math.max(x1, X[j]); y0 = Math.min(y0, Y[j]); y1 = Math.max(y1, Y[j]); }
+  const s = Math.min(2.5, Math.min((W - 2 * pad) / Math.max(40, x1 - x0), (H - 2 * pad) / Math.max(40, y1 - y0)));
+  target = { s, x: W / 2 - 50 - s * (x0 + x1) / 2, y: H / 2 - s * (y0 + y1) / 2 };  // leave room for labels on the right
+  if (quiet) { view = target; target = null; }
+  kick();
+}
+const STYLE = { 1: ["rgba(160,180,212,", []], 2: ["rgba(95,208,212,", []], 3: ["rgba(240,169,59,", [6, 4]], 4: ["rgba(197,155,255,", [2, 4]] };
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save(); ctx.translate(view.x, view.y); ctx.scale(view.s, view.s);
+  const lit = mark && new Set([...mark.ranked, ...mark.anchorFiles, ...(mark.focus != null ? [mark.focus] : []), ...mark.near]);
+  for (const e of links) {
+    const top = e.kinds & 8 ? 3 : e.kinds & 4 ? 2 : e.kinds & 2 ? 1 : 4;
+    const on = mark && mark.pairs.has(e.a + "|" + e.b);
+    const [rgb, dash] = STYLE[top];
+    ctx.strokeStyle = rgb + (on ? 1 : mark ? 0.05 : top === 3 ? 0.75 : files.length > 300 ? 0.2 : 0.5) + ")";
+    ctx.lineWidth = (on ? 2.6 : top === 3 ? 1.4 : 0.8) / view.s; ctx.setLineDash(dash.map(d => d / view.s));
+    const a = slot.get(e.a), b = slot.get(e.b);
+    ctx.beginPath(); ctx.moveTo(X[a], Y[a]); ctx.lineTo(X[b], Y[b]); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  for (let j = 0; j < files.length; j++) {
+    const f = files[j], n = N[f], s = size(j);
+    const isAnchor = mark && mark.anchorFiles.has(f), on = !mark || lit.has(f);
+    ctx.globalAlpha = on ? 1 : 0.16;
+    ctx.fillStyle = isAnchor ? "#f0a93b" : areaColor(n.a);
+    ctx.fillRect(X[j] - s / 2, Y[j] - s / 2, s, s);
+    if (mark && (mark.ranked.includes(f) || mark.focus === f)) {
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2 / view.s; ctx.strokeRect(X[j] - s / 2 - 2 / view.s, Y[j] - s / 2 - 2 / view.s, s + 4 / view.s, s + 4 / view.s);
+    }
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+  // labels in screen space so they stay readable at any zoom
+  ctx.font = "600 12.5px " + getComputedStyle(document.body).fontFamily; ctx.textBaseline = "middle";
+  const label = (f, text, color) => {
+    const j = slot.get(f), px = X[j] * view.s + view.x, py = Y[j] * view.s + view.y, off = size(j) * view.s / 2 + 6;
+    if (px < -50 || px > W + 50 || py < -20 || py > H + 20) return;
+    ctx.lineWidth = 3.5; ctx.strokeStyle = "#101a2c"; ctx.strokeText(text, px + off, py);
+    ctx.fillStyle = color; ctx.fillText(text, px + off, py);
+  };
+  if (mark) {
+    mark.ranked.forEach((f, r) => { if (!mark.anchorFiles.has(f)) label(f, (r + 1) + "  " + N[f].l, "#e9f7f8"); });
+    for (const a of mark.anchors) label(N[a].f, (N[a].k ? N[a].l + "  in " : "") + N[N[a].f].l, "#ffd28a");
+    if (mark.focus != null && !mark.ranked.includes(mark.focus)) label(mark.focus, N[mark.focus].l, "#ffffff");
+  } else if (view.s > 1.5 || files.length <= 40) {
+    for (const f of files) label(f, N[f].l, "#c9d4e3");
+  }
+}
+let running = false;
+function kick() { if (!running) { running = true; requestAnimationFrame(frame); } }
+function frame() {
+  let busy = false;
+  if (heat > 0.02) { tick(); tick(); busy = true; if (!userMoved && !mark) { fitNow(); } }
+  if (target) {
+    view.x += (target.x - view.x) * 0.18; view.y += (target.y - view.y) * 0.18; view.s += (target.s - view.s) * 0.18;
+    if (Math.abs(target.s - view.s) < 0.002 && Math.abs(target.x - view.x) < 0.5) { view = target; target = null; } else busy = true;
+  }
+  draw();
+  if (busy) requestAnimationFrame(frame); else running = false;
+}
+function fitNow() { fit(files); if (target) { view = target; target = null; } }
+let userMoved = false;
+
+// ---------------------------------------------------------------- pointer
+let dragFrom = null, moved = false;
+const toWorld = (px, py) => [(px - view.x) / view.s, (py - view.y) / view.s];
+function pick(px, py) {
+  const [wx, wy] = toWorld(px, py); let best = null, bd = Infinity;
+  for (let j = 0; j < files.length; j++) {
+    const d = Math.hypot(X[j] - wx, Y[j] - wy), reach = size(j) / 2 + 8 / view.s;
+    if (d < reach && d < bd) { bd = d; best = files[j]; }
+  }
+  return best;
+}
+canvas.addEventListener("pointerdown", e => { dragFrom = [e.clientX, e.clientY, view.x, view.y]; moved = false; canvas.setPointerCapture(e.pointerId); canvas.classList.add("drag"); });
+canvas.addEventListener("pointermove", e => {
+  const r = canvas.getBoundingClientRect();
+  if (dragFrom) {
+    const dx = e.clientX - dragFrom[0], dy = e.clientY - dragFrom[1];
+    if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; userMoved = true; target = null; view.x = dragFrom[2] + dx; view.y = dragFrom[3] + dy; kick(); }
+    return;
+  }
+  const f = pick(e.clientX - r.left, e.clientY - r.top);
+  if (f == null) { tip.style.display = "none"; return; }
+  tip.textContent = N[f].path; tip.style.display = "block";
+  tip.style.left = Math.min(W - 260, e.clientX - r.left + 14) + "px"; tip.style.top = (e.clientY - r.top + 14) + "px";
+});
+canvas.addEventListener("pointerup", e => {
+  const r = canvas.getBoundingClientRect(); canvas.classList.remove("drag");
+  if (!moved) { const f = pick(e.clientX - r.left, e.clientY - r.top); if (f != null) showFile(f); }
+  dragFrom = null;
+});
+canvas.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+canvas.addEventListener("wheel", e => {
+  e.preventDefault(); userMoved = true; target = null;
+  const r = canvas.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const k = Math.exp(-e.deltaY * 0.0015), s = Math.max(0.05, Math.min(8, view.s * k));
+  view.x = px - (px - view.x) * s / view.s; view.y = py - (py - view.y) * s / view.s; view.s = s; kick();
+}, { passive: false });
+
+// ---------------------------------------------------------------- side panel
+const result = document.getElementById("result");
+const pathHtml = p => { const i = p.lastIndexOf("/"); return `<span class="path">${esc(p.slice(0, i + 1))}<b>${esc(p.slice(i + 1))}</b></span>`; };
+const VERB = ["in", "import", "call", "API call", "changed together"];
+function chainHtml(steps) {
+  if (steps.length < 2) return "";
+  return steps.map(([i, kind], n) => (n ? ` <i>· ${VERB[kind]} ·</i> ` : "") + esc(N[i].l)).join("");
+}
+function pairsOf(steps, into) {
+  for (let n = 1; n < steps.length; n++) {
+    const a = N[steps[n - 1][0]].f, b = N[steps[n][0]].f;
+    if (a !== b) into.add(Math.min(a, b) + "|" + Math.max(a, b));
+  }
+}
+function ask(question) {
+  const g = graphSearch(question), kw = keywordSearch(question);
+  if (!g.anchors.length) {
+    mark = null; draw();
+    result.innerHTML = `<p class="empty">Nothing in this repo has a name matching “${esc(question)}”. Try the words used in file or function names.</p>`;
+    return;
+  }
+  const a = g.anchors[0], kwSet = new Set(kw.map(k => k[0])), pairs = new Set(), top = g.files[0][1];
+  let fresh = 0;
+  const rows = g.files.map(([f, score], r) => {
+    const steps = chain(g.anchors, f); pairsOf(steps, pairs);
+    const miss = !kwSet.has(f); if (miss) fresh++;
+    return `<li><button data-file="${f}"><span class="rank">${r + 1}</span>${pathHtml(N[f].path)}
+      <span class="bar" style="width:${Math.max(3, 100 * Math.sqrt(score / top))}%"></span>
+      ${steps.length > 1 ? `<span class="chain">${chainHtml(steps)}</span>` : ""}
+      ${miss ? `<span class="miss">Keyword search misses this</span>` : ""}</button></li>`;
+  }).join("");
+  const more = g.anchors.length > 1 ? `<br>Also matching equally well: ${g.anchors.slice(1).map(i => esc(N[i].l) + " in " + esc(N[N[i].f].l)).join(", ")}. The walk starts from all of them.` : "";
+  result.innerHTML = `
+    <div class="step"><h2><span class="num a">1</span>Anchor</h2>
+      <p><b style="color:var(--ink)">${esc(N[a].l)}</b>${N[a].k ? " line " + N[a].ln : ""}<br>${pathHtml(N[N[a].f].path)}<br>
+      The best name match for the question.${more}</p></div>
+    <div class="step"><h2><span class="num w">2</span>Walk</h2>
+      <p>Files ranked by how close they are to the anchor along the links.</p>
+      <ol class="ranked">${rows}</ol>
+      <p class="verdict">${fresh} of these ${g.files.length} files are not in keyword search’s top ${Math.max(kw.length, g.files.length)}.</p>
+      <details><summary>What keyword search returns</summary><ol>${kw.map(([f]) => `<li>${pathHtml(N[f].path)}</li>`).join("") || "<li>Nothing</li>"}</ol></details>
+    </div>`;
+  mark = { anchors: g.anchors, anchorFiles: new Set(g.anchors.map(i => N[i].f)), ranked: g.files.map(f => f[0]), pairs, focus: null, near: [] };
+  fit([...mark.ranked, ...mark.anchorFiles], 140);
+}
+function showFile(f) {
+  const fns = [], by = [[], [], [], [], []], near = new Set(), pairs = new Set();
+  N.forEach((n, i) => {
+    if (n.f !== f) return;
+    if (n.k) fns.push(n.l);
+    for (const [j, , kind] of adj[i]) {
+      const o = N[j].f; if (o === f || kind === 0) continue;
+      near.add(o); pairs.add(Math.min(f, o) + "|" + Math.max(f, o));
+      if (!by[kind].includes(o)) by[kind].push(o);
+    }
+  });
+  const group = (kind, title) => by[kind].length ? `<p style="margin-top:8px"><b style="color:var(--ink)">${title}</b></p>` +
+    by[kind].slice(0, 12).map(o => `<div>${pathHtml(N[o].path)}</div>`).join("") + (by[kind].length > 12 ? `<p>and ${by[kind].length - 12} more</p>` : "") : "";
+  result.innerHTML = `<div class="step"><h2>${esc(N[f].l)}</h2>${pathHtml(N[f].path)}
+    <p style="margin-top:6px">${fns.length ? esc(fns.slice(0, 14).join(", ")) + (fns.length > 14 ? ` and ${fns.length - 14} more` : "") : "No functions found in this file."}</p>
+    ${group(1, "Linked by imports")}${group(2, "Linked by calls")}${group(3, "Linked by an API call")}${group(4, "Changed together")}
+    ${near.size ? "" : "<p>Nothing else in the repo links to this file.</p>"}</div>`;
+  mark = { anchors: [], anchorFiles: new Set(), ranked: [], pairs, focus: f, near: [...near] };
+  kick();
+}
+result.addEventListener("click", e => { const b = e.target.closest("[data-file]"); if (b) { const f = +b.dataset.file; fit([f, ...(mark ? mark.anchorFiles : [])], 220); } });
+document.getElementById("ask").addEventListener("submit", e => { e.preventDefault(); const q = document.getElementById("q").value.trim(); if (q) ask(q); });
+document.getElementById("reset").addEventListener("click", () => {
+  mark = null; userMoved = false; fit(files);
+  result.innerHTML = `<p class="empty">Ask a question, or click a file on the map to see what it connects to.</p>`;
+});
+
+// ---------------------------------------------------------------- header, chips, legend
+const m = G.meta, num = x => x.toLocaleString("en-US");
+document.title = m.repo + " code map";
+document.getElementById("title").textContent = m.repo + " code map";
+document.getElementById("stats").textContent =
+  `${num(m.after.files)} files, ${num(m.after.functions)} functions and ${num(m.after.links)} links. Built in ${m.seconds} s on ${m.built}.`;
+if ((m.examples || []).length) document.getElementById("q").placeholder = m.examples[0];
+const chips = document.getElementById("chips");
+for (const q of m.examples || []) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = q;
+  b.addEventListener("click", () => { document.getElementById("q").value = q; ask(q); }); chips.append(b);
+}
+{
+  const count = new Map(); for (const f of files) count.set(N[f].a, (count.get(N[f].a) || 0) + 1);
+  const top = [...count].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const has = k => (m.after.by_kind || {})[KIND[k]];
+  document.getElementById("legend").innerHTML = `<h3>Links</h3>
+    <span><i class="ln" style="border-color:#8fa3c4"></i>imports</span>
+    <span><i class="ln" style="border-color:#35b6bb"></i>calls</span>
+    ${has(3) ? `<span><i class="ln" style="border-color:#f0a93b;border-top-style:dashed"></i>API call</span>` : ""}
+    ${has(4) ? `<span><i class="ln" style="border-color:#c59bff;border-top-style:dotted"></i>changed together</span>` : ""}
+    <h3>Areas of the repo</h3>` + top.map(([a, c]) => `<span><i class="sw" style="background:${areaColor(a)}"></i>${esc(G.areas[a])} (${c})</span>`).join("");
+}
+new ResizeObserver(resize).observe(canvas);
+resize(); if (quiet) { while (heat > 0.02) tick(); fitNow(); draw(); } else kick();
+</script>
+</body>
+</html>
